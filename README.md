@@ -12,4 +12,4 @@ The codes for the workshop are available at
 
 The presentation for the workshop is available at [workshop_presentation.pptx](https://pennstateoffice365-my.sharepoint.com/:p:/r/personal/ako5205_psu_edu/_layouts/15/Doc.aspx?sourcedoc=%7B4496BCAF-509A-461F-A7FD-15170288C5F5%7D&file=DAWG%20Workshop%20%232.pptx&action=edit&mobileredirect=true&DefaultItemOpen=1)
 
-Data
+Data is located in the workshop 2 folder
