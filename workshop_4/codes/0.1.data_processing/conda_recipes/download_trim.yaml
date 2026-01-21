@@ -1,0 +1,9 @@
+channels: 
+  - bioconda
+  - conda-forge
+dependencies:
+  - sra-tools=3.1.0
+  - seqtk=1.4
+  - trimmomatic=0.39
+  - bowtie2=2.5.3
+  

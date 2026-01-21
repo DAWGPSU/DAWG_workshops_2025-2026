@@ -1,0 +1,24 @@
+# All study names to process
+study_names: ['input_data_ITS']
+
+# Directory paths
+study_dir: '/scratch/pmt5304/dawg/fa25/data/PRJNA880162/'
+conda_dir: '../conda_recipes'
+scripts_dir: 'scripts'
+params_dir: 'params/'
+service_config: 'service_config/'
+
+# Processing parameters
+threads: 10
+
+# DADA2 databases
+database_url: 'https://www.arb-silva.de/fileadmin/silva_databases/current/DADA2/1.36.0/SSU/{database}'
+database_name: 'UNITE'
+databases: 
+  - 'sh_general_release_dynamic_s_19.02.2025_dev.fasta'
+
+# DADA2 parameters
+pool: ['FALSE']  # or ['TRUE'] or ['pseudo']
+
+
+metadata: "/scratch/pmt5304/dawg/fa25/data/PRJNA880162/PRJNA880162.csv"

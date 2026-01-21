@@ -1,0 +1,8 @@
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - bioconductor-dada2=1.30.0
+  - bioconductor-phyloseq=1.46.0
+  - r-yaml=2.3.10

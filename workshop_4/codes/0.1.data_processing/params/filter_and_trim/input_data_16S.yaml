@@ -1,0 +1,11 @@
+truncLen_f: 240
+truncLen_r: 240
+trimLeft_l: 0
+trimLeft_r: 0
+maxN: 0 
+maxEE_f: 2 
+maxEE_r: 2 
+truncQ: 2 
+rm_phix: TRUE
+maxLen: Inf
+minLen: 50

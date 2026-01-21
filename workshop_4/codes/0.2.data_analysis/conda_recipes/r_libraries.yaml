@@ -1,0 +1,17 @@
+name: sp26_workshop
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base>=4.0
+  - bioconductor-phyloseq
+  - r-vegan
+  - r-ape
+  - r-ggplot2
+  - r-ggpubr
+  - r-pma
+  - r-reshape2
+  - r-tidyr
+  - r-phytools
+  - r-gunifrac

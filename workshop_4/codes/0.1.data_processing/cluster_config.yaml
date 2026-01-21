@@ -1,0 +1,56 @@
+__default__:
+  mem: "100GB"
+  time: "24:00:00"
+  nodes: 1
+  ntasks: 1
+  log: "logs/slurm.%j.log"
+  log2: "logs/{rule}.%j.log"
+build_index:
+  mem: "100GB"
+  time: "24:00:00"
+  nodes: 1
+  ntasks: 1
+  log: "logs/slurm.%j.log"
+  log2: "logs/{rule}.%j.log"
+download_reads_paired:
+  mem: "10GB"
+  time: "10:00:00"
+  nodes: 1
+  ntasks: 1
+  log: "logs/slurm.%j.log"
+download_reads_single:
+  mem: "10GB"
+  time: "10:00:00"
+  nodes: 1
+  ntasks: 1
+  log: "logs/slurm.%j.log"
+fastqc:
+  mem: "10GB"
+  time: "10:00:00"
+  nodes: 1
+  ntasks: 1
+  log: "logs/slurm.%j.log"
+trimmomatic:
+  mem: "10GB"
+  time: "10:00:00"
+  nodes: 1
+  ntasks: 1
+  log: "logs/slurm.%j.log"
+dada_filter_and_trim_paired:
+  mem: "10GB"
+  time: "10:00:00"
+  nodes: 1
+  ntasks: 1
+  log: "logs/slurm.%j.log"
+bowtie_hg38:
+  mem: "10GB"
+  time: "10:00:00"
+  nodes: 1
+  ntasks: 1
+  log: "logs/slurm.%j.log"
+bowtie_t2t:
+  mem: "10GB"
+  time: "10:00:00"
+  nodes: 1
+  ntasks: 1
+  log: "logs/slurm.%j.log"

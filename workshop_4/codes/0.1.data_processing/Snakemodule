@@ -1,0 +1,128 @@
+"""
+Master Snakemake module for microbiome amplicon sequencing analysis.
+
+This module integrates:
+- Quality filtering and trimming (filter_and_trim)
+- Host sequence removal (host_removal)
+- DADA2 ASV analysis (dada2)
+- Quality control reports (multiqc)
+
+Each submodule can be run independently or as part of the complete pipeline.
+"""
+
+# Configuration variables
+conda_dir = config["conda_dir"]
+scripts_dir = config["scripts_dir"]
+
+# Wildcard constraints
+wildcard_constraints:
+    strand = '1|2',
+    study_name = '|'.join(config["study_names"])
+
+
+##############################################
+#              MODULE IMPORTS                #
+##############################################
+
+
+module filter_and_trim:
+    """
+    Quality filtering and trimming module.
+    
+    Handles:
+        - Trimmomatic quality trimming
+        - DADA2 filterAndTrim
+        - Sample table generation with statistics
+    """
+    snakefile: "pipelines/2.filter_and_trim.smk"
+    config: config
+
+use rule * from filter_and_trim as *
+
+
+module dada2:
+    """
+    DADA2 amplicon sequence variant analysis module.
+    
+    Handles:
+        - Error rate learning
+        - Sequence dereplication and denoising
+        - Paired-end merging (if applicable)
+        - Chimera removal
+        - Taxonomic assignment
+        - Phyloseq object creation at multiple taxonomic levels
+    """
+    snakefile: "pipelines/4.dada2.smk"
+    config: config
+
+use rule * from dada2 as *
+
+
+##############################################
+#              MASTER RULES                  #
+##############################################
+
+
+rule all:
+    """
+    Master rule to run complete microbiome analysis pipeline.
+    
+    Executes all modules in order:
+        1. filter_and_trim - Quality control and trimming
+        2. host_removal - Remove human contamination
+        3. dada2 - ASV identification and taxonomic assignment
+    """
+    input:
+        # Filter and trim outputs
+        filter_and_trim = rules.dada_filter_and_trim_all.input,
+        
+        # DADA2 outputs
+        dada2 = rules.dada2_all.input
+    default_target: True
+
+
+rule filter_and_trim_only:
+    """
+    Run only the quality filtering and trimming module.
+    """
+    input:
+        rules.dada_filter_and_trim_all.input
+
+
+rule dada2_only:
+    """
+    Run only the DADA2 analysis module.
+    
+    Note: Requires host_removal to be completed first.
+    """
+    input:
+        rules.dada2_all.input
+
+
+##############################################
+#           CONVENIENCE RULES                #
+##############################################
+
+
+rule clean_intermediate:
+    """
+    Remove intermediate files to save disk space.
+    
+    Removes:
+        - Trimmomatic intermediate files
+        - Bowtie2 mapping SAM files
+        - DADA2 intermediate RDS files
+        
+    Keeps:
+        - Final phyloseq objects
+        - Final CSV tables
+        - Database files
+    """
+    shell:
+        """
+        echo "Cleaning intermediate files..."
+        rm -rf {config[study_dir]}processed/trimmed/trimmomatic/*/
+        rm -rf {config[study_dir]}processed/trimmed/filter_and_trim/*/
+        rm -rf {config[study_dir]}processed/host_removed/*/mapped/
+        echo "Cleanup complete. Final outputs preserved."
+        """
