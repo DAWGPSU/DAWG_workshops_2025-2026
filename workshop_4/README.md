@@ -4,14 +4,16 @@
 ## Overview
 This workshop demonstrates integrated analysis techniques for microbiome and mycobiome data, focusing on multivariate statistical approaches and phylogenetic methods.
 
-**Main Analysis Script:** `workshop_4/codes/0.2.data_analysis/1. Main_analysis_PCoA_Procrustes_CCA.ipynb` ([view](https://github.com/DAWGPSU/DAWG_workshops_2025-2026/blob/workshop4_ipynb/workshop_4/codes/0.2.data_analysis/1.%20Main_analysis_PCoA_Procrustes_CCA.ipynb))
+**Main analysis script:** `workshop_4/codes/0.2.data_analysis/1. Main_analysis_PCoA_Procrustes_CCA.ipynb` ([view](https://github.com/DAWGPSU/DAWG_workshops_2025-2026/blob/workshop4_ipynb/workshop_4/codes/0.2.data_analysis/1.%20Main_analysis_PCoA_Procrustes_CCA.ipynb))
+
+**Bonus script:** `workshop_4/codes/0.2.data_analysis/2. Bonus analysis. PCoA based on Bray-Curtis. Procrustes.ipynb` ([view](https://github.com/DAWGPSU/DAWG_workshops_2025-2026/blob/workshop4_ipynb/workshop_4/codes/0.2.data_analysis/2.%20Bonus%20analysis.%20PCoA%20based%20on%20Bray-Curtis.%20Procrustes.ipynb))
 
 ## Workshop Content
-- **Principal Coordinates Analysis (PCoA)** based on Bray-Curtis distance
 - **Phylogenetic tree construction** using 16S rRNA sequences with ghost-tree approach for primary taxonomic annotation
 - **UniFrac-based PCoA** incorporating phylogenetic relationships
 - **Procrustes analysis** for comparing PCoA ordinations between microbiome and mycobiome datasets
 - **Canonical Correlation Analysis (CCA)** for identifying correlated patterns across data types
+- [Bonus content] **Principal Coordinates Analysis (PCoA) & Procrustes** based on Bray-Curtis distance
 
 ## Dataset
 We use dataset **PRJNA880162** from a mother-infant study examining microbiome and mycobiome composition in milk and gut samples.
@@ -23,15 +25,20 @@ We use dataset **PRJNA880162** from a mother-infant study examining microbiome a
 
 **Step 2.** Generation of the phylogenetic trees for microbiome (`MUSCLE` + `fasttree`) and mycobiome data (`ghost-tree`). The corresponding scripts: `workshop_4/codes/0.2.data_analysis/0.1-0.3`
 
+**Step 3.** Filter datasets to leave only matching samples between microbial and mycobial datasets, convert counts to the relative abundances, agglomerate by genus. The corresponding scripts: `workshop_4/codes/0.2.data_analysis/0.4 Data filtration.Rmd`
+
 **Processing outputs:**
-- Two phyloseq objects (one for bacteria, one for fungi)
-- Two phyloseq objects with integrated phylogenetic trees
+- Step 1: Two phyloseq objects (one for bacteria, one for fungi)
+- Step 2: Two phyloseq objects with integrated phylogenetic trees
+- Step 3:
+    -  Two phyloseq objects with matching samples, containing phylogenetic trees and relative abundances. <br>
+    -  Two phyloseq objects with matching samples, containing phylogenetic trees and relative abundances, agglomerated by genus.
 
 **Note:** All files necessary for the main analysis script are provided in `workshop_4/codes/0.2.data_analysis/`, so participants **do not need to run** any of the processing steps.
 
 ## Installation
 
-### Option 1: Using Conda (Recommended)
+### Option 1: Using Conda
 ```bash
 conda env create -f workshop_4/codes/0.2.data_analysis/conda_recipes/r_libraries.yaml
 conda activate sp26_workshop
@@ -75,7 +82,7 @@ cat("\nInstallation complete!\n")
 1. Clone this repository
 2. Install required libraries (see Installation section)
 3. Navigate to `workshop_4/codes/0.2.data_analysis/`
-4. Open `1_Main_analysis_PCoA_Procrustes_CCA.ipynb` in RStudio
+4. Open `1_Main_analysis_PCoA_Procrustes_CCA.ipynb` in Jupyter
 5. Run the R Markdown document interactively or knit to generate a report
 
 ## Repository Structure
@@ -88,7 +95,9 @@ workshop_4/
 │       ├── 0.1. Building phylogenetic trees. Data pre-processing. R code.ipynb
 │       ├── 0.2. Building phylogenetic trees. Ghost-tree usage. Terminal.ipynb
 │       ├── 0.3. Building phylogenetic trees. Data post-processing. R code.ipynb
+│       ├── 0.4 Data filtration.ipynb
 │       ├── 1. Main_analysis_PCoA_Procrustes_CCA.ipynb    # Main workshop script
+│       ├── 2. Bonus analysis. PCoA based on Bray-Curtis. Procrustes.ipynb
 │       ├── conda_recipes/
 │       │   ├── ghost-tree.yaml
 │       │   └── r_libraries.yaml
