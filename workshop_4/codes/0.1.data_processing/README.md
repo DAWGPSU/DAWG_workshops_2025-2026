@@ -16,7 +16,13 @@ Download samples from NCBI and place them in:
 workshop_4/data/PRJNA880162/input_data/
 ```
 
-### 2. Download Reference Database
+### 2. Redistribute raw files in 16S and ITS folders
+Run the following scripts:
+```
+workshop_4/codes/0.1.data_processing/Separate 16S and ITS samples.ipynb
+```
+
+### 3. Download Reference Database
 Follow the instructions in [Workshop 1](https://github.com/DAWGPSU/DAWG_workshops_2025-2026/tree/main/workshop_1) to download the UNITE fungal ITS database.
 
 Place the database files in:
@@ -24,7 +30,7 @@ Place the database files in:
 workshop_4/data/database/
 ```
 
-### 3. Install snakemake
+### 4. Install snakemake
 Follow the instructions in [Snakemake](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html).
 
 ## Running the Pipeline
