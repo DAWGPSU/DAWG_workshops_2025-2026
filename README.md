@@ -20,4 +20,4 @@ The codes for the workshop are available at [metagenomes assembly.html](https://
 The presentation for the workshop is available at [DAWG_Workshop_3.pdf](https://github.com/DAWGPSU/DAWG_workshops_2025-2026/blob/main/workshop_3/DAWG_Workshop_3.pdf)
 
 ### Workshop 4
-The codes for the workshop are available at the [workshop_4 directory](https://github.com/DAWGPSU/DAWG_workshops_2025-2026/edit/main/workshop_4/README.md)
+The codes for the workshop are available in the [workshop_4 directory](https://github.com/DAWGPSU/DAWG_workshops_2025-2026/edit/main/workshop_4/README.md)
