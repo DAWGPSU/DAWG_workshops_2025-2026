@@ -10,6 +10,10 @@ desc: The content of this file is a courtesy of Hanh Tran with minor modificatio
 ```
 
 ```{bash}
+conda env create -f  conda_recipes/ghost-tree.yaml
+```
+
+```{bash}
 conda activate ghost_tree
 ```
 
