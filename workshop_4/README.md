@@ -97,7 +97,7 @@ workshop_4/
 └── data/
     ├── PRJNA880162/
     │   └── processed/phyloseq/       # Processed phyloseq objects
-    └── data_analysis/                 # Analysis outputs and intermediate files
+    └── data_analysis/                # Analysis outputs and intermediate files
 ```
 
 **Key directories:**
