@@ -6,10 +6,6 @@ desc: The content of this file is a courtesy of Hanh Tran with minor modificatio
 ---
 
 ```{bash}
-# https://www.arb-silva.de/archive/release_132/Exports
-```
-
-```{bash}
 conda env create -f  conda_recipes/ghost-tree.yaml
 ```
 
