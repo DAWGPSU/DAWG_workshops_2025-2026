@@ -18,3 +18,6 @@ Data is located in the workshop 2 folder
 The codes for the workshop are available at [metagenomes assembly.html](https://dawgpsu.github.io/DAWG_workshops_2025-2026/workshop_3/workshop_3.html)
 
 The presentation for the workshop is available at [DAWG_Workshop_3.pdf](https://github.com/DAWGPSU/DAWG_workshops_2025-2026/blob/main/workshop_3/DAWG_Workshop_3.pdf)
+
+### Workshop 4
+The codes for the workshop are available in [workshop_4 directory](https://github.com/DAWGPSU/DAWG_workshops_2025-2026/edit/main/workshop_4/README.md)
