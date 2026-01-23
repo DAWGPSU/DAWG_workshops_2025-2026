@@ -1,6 +1,7 @@
 # Workshop 4. January 29th, 2026.
 # Integrated analysis of microbiome and mycobiome data
-Workshop content (workshop_4/codes/0.2.data_analysis/1_Main_analysis_PCoA_Procrustes_CCA):
+Main workshop script file: `workshop_4/codes/0.2.data_analysis/1_Main_analysis_PCoA_Procrustes_CCA`.
+Workshop content:
 - PCoA based on Bray-Curtis distance
 - Building phylogenetic tree based on 16S rRNA and using primary taxanomic annotation (ghost-tree) (workshop_4/codes/0.2.data_analysis/1_Main_analysis_PCoA_Procrustes_CCA)
 - PCoA based on Unifrac metric
