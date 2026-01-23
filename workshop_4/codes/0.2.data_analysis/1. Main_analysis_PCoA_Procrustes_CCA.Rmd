@@ -1,13 +1,6 @@
 ---
-title: "Main Analysis: PCoA, Procrustes, CCA"
-output: 
-  html_document: 
-    fig_width: 15
-    fig_height: 8
-    fig_caption: true
-editor_options: 
-  markdown: 
-    wrap: 72
+title: An R Markdown document converted from "1. Main_analysis_PCoA_Procrustes_CCA.ipynb"
+output: html_document
 ---
 
 # Data Analysis Workshop - Main Analysis
@@ -16,9 +9,11 @@ editor_options:
 <https://www.frontiersin.org/journals/microbiology/articles/10.3389/fmicb.2022.1050574/full>
 
 This script performs the main statistical analyses for microbiome and
-mycobiome data: - Principal Coordinates Analysis (PCoA) with Bray-Curtis
-and UniFrac distances - Procrustes analysis to compare microbiome and
-mycobiome ordinations - Canonical Correlation Analysis (CCA) to identify
+mycobiome data: <br>
+- Principal Coordinates Analysis (PCoA) UniFrac distances <br> 
+- Procrustes analysis to compare microbiome and
+mycobiome ordinations <br>
+- Canonical Correlation Analysis (CCA) to identify
 co-varying taxa
 
 ## Library Installation
@@ -82,7 +77,9 @@ library(GUniFrac)    # For UniFrac distance calculations
 library(phytools)    # For phylogenetic tree tools
 library(compositions) # For CLR transformation
 ```
+
 ### Custom ggplot theme
+
 ```{r}
 custom_theme <- theme_light() +
       theme(axis.text=element_text(size=12),
@@ -98,510 +95,6 @@ custom_theme <- theme_light() +
 
 ## Load Data
 
-```{r}
-# Define path to preprocessed phyloseq objects
-data_path <- '../../data/PRJNA880162/processed/phyloseq'
-
-# Create output directory for analysis results
-dir.create("../../data/data_analysis", showWarnings = FALSE)
-```
-
-```{r}
-# Load phyloseq objects containing microbiome (16S) and mycobiome (ITS) data
-ps_microbiome <- readRDS(file.path(data_path, 'input_data_16S/phyloseq.rds'))
-ps_mycobiome <- readRDS(file.path(data_path, 'input_data_ITS/phyloseq.rds'))
-
-# Display summary of loaded objects
-ps_microbiome
-ps_mycobiome
-```
-
-```{r}
-# Preview OTU table structure
-otu_table_preview <- data.frame(head(otu_table(ps_microbiome)))
-
-# Preview taxonomy table structure
-tax_table_preview <- data.frame(head(tax_table(ps_microbiome)))
-```
-
-## Agglomerate by Genus
-
-```{r}
-# Agglomerate taxa at the genus level
-# This combines all OTUs belonging to the same genus
-ps_microbiome <- tax_glom(ps_microbiome, 'Genus')
-ps_mycobiome <- tax_glom(ps_mycobiome, 'Genus')
-
-ps_microbiome
-ps_mycobiome
-```
-
-```{r}
-# Rename taxa using genus names for easier interpretation
-taxa_names(ps_microbiome) <- tax_table(ps_microbiome)[, 'Genus']
-taxa_names(ps_mycobiome) <- tax_table(ps_mycobiome)[, 'Genus']
-```
-
-```{r}
-# Verify the renaming
-otu_table_preview <- data.frame(head(otu_table(ps_microbiome)))
-```
-
-```{r}
-# Check for and remove samples with zero total abundance
-nrow(otu_table(ps_microbiome)[rowSums(otu_table(ps_microbiome)) == 0, ])
-nrow(otu_table(ps_mycobiome)[rowSums(otu_table(ps_mycobiome)) == 0, ])
-
-# Prune samples with zero abundance
-ps_microbiome <- prune_samples(rowSums(otu_table(ps_microbiome)) > 0, ps_microbiome)
-ps_mycobiome <- prune_samples(rowSums(otu_table(ps_mycobiome)) > 0, ps_mycobiome)
-
-ps_microbiome
-ps_mycobiome
-```
-
-## Convert to Relative Abundance
-
-```{r}
-# Transform counts to relative abundances (proportions)
-# This normalizes for different sequencing depths across samples
-ps_microbiome <- transform_sample_counts(ps_microbiome, function(x) {x / sum(x)})
-ps_mycobiome <- transform_sample_counts(ps_mycobiome, function(x) {x / sum(x)})
-```
-
-```{r}
-# Verify the transformation (values should sum to 1 for each sample)
-otu_table_preview <- data.frame(head(otu_table(ps_microbiome)))
-```
-
-## Subset Same Samples
-
-```{r}
-# Verify the transformation (values should sum to 1 for each sample)
-metadata_table_preview <- data.frame(head(sample_data(ps_microbiome)))[, c('host.age', 
-                                                                           'host.body.product', 
-                                                                           'host.sex', 
-                                                                           'host.subject.id')]
-```
-
-```{r}
-# Function to clean and standardize metadata
-# This creates consistent sample IDs across microbiome and mycobiome datasets
-clean_metadata <- function(metadata_preselected){
-    metadata_modified <- metadata_preselected
-    colnames(metadata_modified) <- c('age', 
-                                     'sample_source',
-                                     'sex',
-                                     'subject_id')
-    # Format age labels
-    metadata_modified['age'] <- paste0('t', metadata_preselected[['host.age']], 'month')
-    metadata_modified[metadata_preselected[['host.age']] == 6, 'age'] <- paste0(
-        metadata_modified[metadata_preselected[['host.age']] == 6, 'age'], 's')
-    
-    # Simplify sample source names
-    metadata_modified['sample_source'] <- gsub('human ', '', metadata_preselected[['host.body.product']])
-    
-    # Format subject IDs
-    metadata_modified['subject_id'] <- paste0('fam#', metadata_modified[['subject_id']])
-    
-    # Create unique sample IDs
-    metadata_modified['sample_id'] <- paste(metadata_modified[['subject_id']], 
-                                        metadata_modified[['age']],
-                                        metadata_modified[['sample_source']], sep='_')
-    return(metadata_modified)
-}
-```
-
-```{r}
-# Clean microbiome metadata
-metadata_microbiome <- data.frame(sample_data(ps_microbiome))
-metadata_microbiome <- metadata_microbiome[, c('host.age', 
-                                               'host.body.product', 
-                                               'host.sex', 
-                                               'host.subject.id')]
-metadata_microbiome <- clean_metadata(metadata_microbiome)
-sample_data(ps_microbiome) <- metadata_microbiome
-sample_names(ps_microbiome) <- metadata_microbiome[['sample_id']]
-```
-
-```{r}
-# Verify the transformation (values should sum to 1 for each sample)
-metadata_table_preview <- data.frame(head(sample_data(ps_microbiome)))
-```
-
-```{r}
-# Clean mycobiome metadata
-metadata_mycobiome <- data.frame(sample_data(ps_mycobiome))
-metadata_mycobiome <- metadata_mycobiome[, c('host.age', 
-                                             'host.body.product', 
-                                             'host.sex', 
-                                             'host.subject.id')]
-metadata_mycobiome <- clean_metadata(metadata_mycobiome)
-sample_data(ps_mycobiome) <- metadata_mycobiome
-sample_names(ps_mycobiome) <- metadata_mycobiome[['sample_id']]
-```
-
-```{r}
-# Find samples present in both datasets
-sample_ids_microbiome <- metadata_microbiome[['sample_id']]
-sample_ids_mycobiome <- metadata_mycobiome[['sample_id']]
-sample_ids <- intersect(sample_ids_microbiome, sample_ids_mycobiome)
-```
-
-```{r}
-# Subset to common samples and ensure same order
-ps_microbiome <- prune_samples(sample_ids, ps_microbiome)
-ps_mycobiome <- prune_samples(sample_ids, ps_mycobiome)
-
-# Ensure samples are in the same order in both datasets
-otu_table(ps_microbiome) <- otu_table(ps_microbiome)[sample_ids, ]
-otu_table(ps_mycobiome) <- otu_table(ps_mycobiome)[sample_ids, ]
-
-ps_microbiome
-ps_mycobiome
-```
-
-```{r}
-# Save processed phyloseq objects for later use
-saveRDS(ps_microbiome, '../../data/data_analysis/ps_microbiome.processed.rds')
-saveRDS(ps_mycobiome, '../../data/data_analysis/ps_mycobiome.processed.rds')
-```
-
-# PCoA based on Bray-Curtis Distance
-
-Principal Coordinates Analysis (PCoA) is an ordination method that
-visualizes the similarity/dissimilarity between samples in a reduced
-dimensional space.
-
-```{r}
-# Extract OTU table and calculate Bray-Curtis dissimilarity
-otu_data_microbiome <- data.frame(otu_table(ps_microbiome))
-bray_curtis_dist_microbiome <- vegdist(otu_data_microbiome, method = "bray")
-
-# Perform PCoA
-pcoa_res_microbiome <- pcoa(bray_curtis_dist_microbiome)
-
-# Extract first two principal coordinates for plotting
-pcoa_coordinates_microbiome <- data.frame(pcoa_res_microbiome$vectors)[, c('Axis.1', 'Axis.2')]
-colnames(pcoa_coordinates_microbiome) <- c('PCoA1', 'PCoA2')
-pcoa_coordinates_microbiome <- cbind(pcoa_coordinates_microbiome, sample_data(ps_microbiome))
-pcoa_coordinates_microbiome$sample_type <- 'Microbiome'
-```
-
-```{r}
-# Repeat for mycobiome
-otu_data_mycobiome <- data.frame(otu_table(ps_mycobiome))
-bray_curtis_dist_mycobiome <- vegdist(otu_data_mycobiome, method = "bray")
-pcoa_res_mycobiome <- pcoa(bray_curtis_dist_mycobiome)
-
-pcoa_coordinates_mycobiome <- data.frame(pcoa_res_mycobiome$vectors)[, c('Axis.1', 'Axis.2')]
-colnames(pcoa_coordinates_mycobiome) <- c('PCoA1', 'PCoA2')
-pcoa_coordinates_mycobiome <- cbind(pcoa_coordinates_mycobiome, sample_data(ps_mycobiome))
-pcoa_coordinates_mycobiome$sample_type <- 'Mycobiome'
-```
-
-## Basic PCoA Plots
-
-```{r}
-# Set plot dimensions
-width = 10
-height = 8
-options(repr.plot.width=width, repr.plot.height=height)
-
-# Create PCoA plot for microbiome
-pcoa_braycurtis_microbiome <- ggplot(data = pcoa_coordinates_microbiome, aes(x=PCoA1, y=PCoA2)) +
-    # Plot sample points
-    geom_point(aes(fill = sample_source), 
-               size = 5, alpha=0.9, pch=21) +
-    # Add confidence ellipses for each group
-    stat_ellipse(geom = "polygon",
-                 aes(color = sample_source, 
-                     fill = after_scale(alpha(colour, 0.1))), 
-                 lwd=1.1, level=0.9, show.legend = FALSE) +
-    # Add titles
-    labs(title = "PCoA: Bray-Curtis distance", 
-         subtitle = "Microbiome") +
-    # Customize theme
-    custom_theme
-
-pcoa_braycurtis_microbiome
-```
-
-```{r}
-# Create PCoA plot for mycobiome
-width = 10
-height = 8
-options(repr.plot.width=width, repr.plot.height=height)
-
-pcoa_braycurtis_mycobiome <- ggplot(data = pcoa_coordinates_mycobiome, aes(x=PCoA1, y=PCoA2)) +
-    geom_point(aes(fill = sample_source), 
-               size = 5, alpha=0.9, pch=21) +
-    stat_ellipse(geom = "polygon",
-                 aes(color = sample_source, 
-                     fill = after_scale(alpha(colour, 0.1))), 
-                 lwd=1.1, level=0.9, show.legend = FALSE) +
-    labs(title = "PCoA: Bray-Curtis distance", 
-         subtitle = "Mycobiome") +
-    custom_theme 
-
-pcoa_braycurtis_mycobiome
-```
-
-```{r}
-# Combine both plots side by side
-width = 15
-height = 8
-options(repr.plot.width=width, repr.plot.height=height)
-
-p <- ggarrange(pcoa_braycurtis_microbiome, pcoa_braycurtis_mycobiome,
-          ncol = 2, nrow = 1, align = "hv", 
-          common.legend = TRUE, legend = "bottom") 
-print(p)
-```
-
-## PCoA Add-ons
-
-### Loadings
-
-Loadings show which taxa contribute most to the separation along each
-axis.
-
-```{r}
-# Function to compute loadings (correlation of taxa with PCoA axes)
-# Credit source: https://github.com/cran/ape/blob/master/R/biplot.pcoa.R
-compute_loadings <- function(x, Y) {
-    plot.axes <- c(1, 2)
-    pr.coo <- x$vectors
-    n <- nrow(Y)
-    points.stand <- scale(pr.coo[, plot.axes])
-    S <- cov(Y, points.stand)
-    U <- S %*% diag((x$values$Eigenvalues[plot.axes]/(n-1))^(-0.5))
-    colnames(U) <- c('PCoA1', 'PCoA2')
-    U <- data.frame(U)
-    U['Length'] <- sqrt(U[['PCoA1']]^2 + U[['PCoA2']]^2)
-    U <- U[order(-U[['Length']]), ]
-    # Determine which quadrant each loading is in
-    U['direction'] <- (U['PCoA1']/abs(U['PCoA1'])+1)/2 + (U['PCoA2']/abs(U['PCoA2'])+3)
-    return(U)
-}
-```
-
-```{r}
-# Compute loadings for microbiome
-loadings_microbiome <- compute_loadings(pcoa_res_microbiome, otu_table(ps_microbiome))
-
-# Select top 5 taxa with largest loadings
-loadings_microbiome_selected <- loadings_microbiome[1:5, ]
-loadings_microbiome_selected['names'] <- rownames(loadings_microbiome_selected)
-
-# Select one representative loading per quadrant for clarity
-loadings_microbiome_selected <- loadings_microbiome_selected[
-    row.names(unique(loadings_microbiome_selected['direction'])), ]
-```
-
-```{r}
-# Compute loadings for mycobiome
-loadings_mycobiome <- compute_loadings(pcoa_res_mycobiome, otu_table(ps_mycobiome))
-
-loadings_mycobiome_selected <- loadings_mycobiome[1:5, ]
-loadings_mycobiome_selected['names'] <- rownames(loadings_mycobiome_selected)
-loadings_mycobiome_selected <- loadings_mycobiome_selected[
-    row.names(unique(loadings_mycobiome_selected['direction'])), ]
-```
-
-```{r}
-# Create enhanced PCoA plot with loadings for microbiome
-width = 10
-height = 8
-options(repr.plot.width=width, repr.plot.height=height)
-
-pcoa_braycurtis_microbiome <- ggplot(data = pcoa_coordinates_microbiome, aes(x=PCoA1, y=PCoA2)) +
-    geom_point(aes(fill = sample_source), 
-               size = 5, alpha=0.9, pch=21) +
-    stat_ellipse(geom = "polygon",
-                 aes(color = sample_source, 
-                     fill = after_scale(alpha(colour, 0.1))), 
-                 lwd=1.1, level=0.9, show.legend = FALSE) +
-################################### ADD-ON #####################################
-# plot projected microbial genera
-      geom_segment(data = loadings_microbiome_selected, 
-                   aes(x = 0, y = 0, xend = PCoA1, yend = PCoA2), 
-                   arrow = arrow(length = unit(0.03, "npc")), alpha = 1) + 
-# plot names of the projected genera
-      geom_text(data = loadings_microbiome_selected, 
-                mapping = aes(x = PCoA1, y = PCoA2, label = names), 
-                hjust = 0.8, vjust = -0.5, colour = "black", size = 7) +
-# expand x and y limits to make plot better looking
-      scale_x_continuous(expand = expansion(mult = 0.5)) +
-      scale_y_continuous(expand = expansion(mult = 0.1)) +
-################################################################################
-    labs(title = "PCoA: Bray-Curtis distance", 
-         subtitle = "Microbiome") +
-    custom_theme 
-
-pcoa_braycurtis_microbiome
-```
-
-```{r}
-# Create enhanced PCoA plot with loadings for mycobiome
-width = 10
-height = 8
-options(repr.plot.width=width, repr.plot.height=height)
-
-pcoa_braycurtis_mycobiome <- ggplot(data = pcoa_coordinates_mycobiome, aes(x=PCoA1, y=PCoA2)) +
-    geom_point(aes(fill = sample_source), 
-               size = 5, alpha=0.9, pch=21) +
-    stat_ellipse(geom = "polygon",
-                 aes(color = sample_source, 
-                     fill = after_scale(alpha(colour, 0.1))), 
-                 lwd=1.1, level=0.9, show.legend = FALSE) +
-  ################################### ADD-ON #####################################
-# plot projected mycobial genera
-      geom_segment(data = loadings_mycobiome_selected, 
-                   aes(x = 0, y = 0, xend = PCoA1, yend = PCoA2), 
-                   arrow = arrow(length = unit(0.03, "npc")), alpha = 1) + 
-# plot names of the projected genera
-      geom_text(data = loadings_mycobiome_selected, 
-                mapping = aes(x = PCoA1, y = PCoA2, label = names), 
-                hjust = 0.8, vjust = -0.5, colour = "black", size = 7) +
-# expand x and y limits to make plot better looking
-      scale_x_continuous(expand = expansion(mult = 0.5)) +
-      scale_y_continuous(expand = expansion(mult = 0.1)) +
-################################################################################
-    labs(title = "PCoA: Bray-Curtis distance", 
-         subtitle = "Mycobiome") +
-    custom_theme
-
-pcoa_braycurtis_mycobiome
-```
-
-```{r}
-# Combine both enhanced plots
-width = 12
-height = 8
-options(repr.plot.width=width, repr.plot.height=height)
-
-p <- ggarrange(pcoa_braycurtis_microbiome, pcoa_braycurtis_mycobiome,
-          ncol = 2, nrow = 1, align = "hv", 
-          common.legend = TRUE, legend = "bottom") 
-print(p)
-```
-
-### Statistical Testing with PERMANOVA
-
-PERMANOVA tests whether group centroids differ significantly in
-multivariate space.
-
-```{r}
-# PERMANOVA test for microbiome
-# Tests if sample source significantly affects community composition
-set.seed(123)  # Set seed for reproducibility
-permanova_microbiome <- adonis2(
-    as.formula(paste0("bray_curtis_dist_microbiome ~ sample_source")), 
-    data=data.frame(sample_data(ps_microbiome)), 
-    permutations=9999)
-permanova_microbiome
-```
-
-```{r}
-# PERMANOVA test for mycobiome
-set.seed(234)
-permanova_mycobiome <- adonis2(
-    as.formula(paste0("bray_curtis_dist_mycobiome ~ sample_source")), 
-    data=data.frame(sample_data(ps_mycobiome)), 
-    permutations=9999)
-permanova_mycobiome
-```
-
-### Explained Variance
-
-```{r}
-# Calculate percentage of variance explained by each axis
-explained_variance_microbiome <- pcoa_res_microbiome$values$Relative_eig * 100
-explained_variance_mycobiome <- pcoa_res_mycobiome$values$Relative_eig * 100
-```
-
-### Updated Plots with Statistics
-
-```{r}
-# Create final publication-ready plots with all annotations
-width = 10
-height = 8
-options(repr.plot.width=width, repr.plot.height=height)
-
-pcoa_braycurtis_microbiome <- ggplot(data = pcoa_coordinates_microbiome, aes(x=PCoA1, y=PCoA2)) +
-    geom_point(aes(fill = sample_source), 
-               size = 5, alpha=0.9, pch=21) +
-    stat_ellipse(geom = "polygon",
-                 aes(color = sample_source, 
-                     fill = after_scale(alpha(colour, 0.1))), 
-                 lwd=1.1, level=0.9, show.legend = FALSE) +
-    geom_segment(data = loadings_microbiome_selected, 
-                 aes(x = 0, y = 0, xend = PCoA1, yend = PCoA2), 
-                 arrow = arrow(length = unit(0.03, "npc")), alpha = 1) + 
-    geom_text(data = loadings_microbiome_selected, 
-              mapping = aes(x = PCoA1, y = PCoA2, label = names), 
-              hjust = 0.8, vjust = -0.5, colour = "black", size = 4) +
-    scale_x_continuous(expand = expansion(mult = 0.5)) +
-    scale_y_continuous(expand = expansion(mult = 0.1)) +
-  ################################### ADD-ON #####################################
-    # Add axis labels with explained variance
-    labs(x = paste0("PCoA 1 (", sprintf('%.2f', explained_variance_microbiome[1]), "%)"), 
-         y = paste0("PCoA 2 (", sprintf('%.2f', explained_variance_microbiome[2]), "%)"), 
-         title = "PCoA: Bray-Curtis distance", 
-         subtitle = "Microbiome",
-         caption = paste0("PERMANOVA p-value = ", permanova_microbiome['Model', 'Pr(>F)'])) +
-  ################################################################################
-    custom_theme
-
-pcoa_braycurtis_microbiome
-```
-
-```{r}
-width = 10
-height = 8
-options(repr.plot.width=width, repr.plot.height=height)
-
-pcoa_braycurtis_mycobiome <- ggplot(data = pcoa_coordinates_mycobiome, aes(x=PCoA1, y=PCoA2)) +
-    geom_point(aes(fill = sample_source), 
-               size = 5, alpha=0.9, pch=21) +
-    stat_ellipse(geom = "polygon",
-                 aes(color = sample_source, 
-                     fill = after_scale(alpha(colour, 0.1))), 
-                 lwd=1.1, level=0.9, show.legend = FALSE) +
-  # plot projected microbial genera
-      geom_segment(data = loadings_mycobiome_selected, 
-                   aes(x = 0, y = 0, xend = PCoA1, yend = PCoA2), 
-                   arrow = arrow(length = unit(0.03, "npc")), alpha = 1) + 
-# plot names of the projected genera
-      geom_text(data = loadings_mycobiome_selected, 
-                mapping = aes(x = PCoA1, y = PCoA2, label = names), 
-                hjust = 0.8, vjust = -0.5, colour = "black", size = 4) +
-################################### ADD-ON #####################################
-# add titles
-      labs(x = paste0("PCoA 1 (", sprintf('%.2f', explained_variance_mycobiome[1]), "%)"), 
-           y = paste0("PCoA 2 (", sprintf('%.2f', explained_variance_mycobiome[2]), "%)"), 
-           title = "PCoA: Bray-Curtis distance", 
-           subtitle = "Mycobiome",
-           caption = paste0("PERMANOVA p-value = ", permanova_mycobiome['Model', 'Pr(>F)']))+
-################################################################################
-    custom_theme 
-
-pcoa_braycurtis_mycobiome
-```
-
-```{r}
-# Combine final plots
-width = 15
-height = 8
-options(repr.plot.width=width, repr.plot.height=height)
-
-p <- ggarrange(pcoa_braycurtis_microbiome, pcoa_braycurtis_mycobiome,
-          ncol = 2, nrow = 1, align = "hv", 
-          common.legend = TRUE, legend = "bottom") 
-print(p)
-```
-
 # PCoA based on UniFrac Distances
 
 UniFrac distances incorporate phylogenetic relationships between taxa.
@@ -609,8 +102,8 @@ This analysis requires phylogenetic trees (generated in file 2).
 
 ```{r}
 # Load phyloseq objects with phylogenetic trees
-ps_microbiome_with_tree <- readRDS('../../data/data_analysis/ps_microbiome.with_tree.rds')
-ps_mycobiome_with_tree  <- readRDS('../../data/data_analysis/ps_mycobiome.with_tree.rds')
+ps_microbiome_with_tree <- readRDS('../../data/data_analysis/ps_microbiome.filtered.rds')
+ps_mycobiome_with_tree  <- readRDS('../../data/data_analysis/ps_mycobiome.filtered.rds')
 
 ps_microbiome_with_tree
 ps_mycobiome_with_tree
@@ -620,52 +113,6 @@ ps_mycobiome_with_tree
 # Root the phylogenetic tree at midpoint for consistency
 phy_tree(ps_microbiome_with_tree) <- midpoint.root(phy_tree(ps_microbiome_with_tree))
 phy_tree(ps_mycobiome_with_tree) <- midpoint.root(phy_tree(ps_mycobiome_with_tree))
-```
-
-```{r}
-# Re-process data to ensure consistency
-ps_microbiome_with_tree <- prune_samples(rowSums(otu_table(ps_microbiome_with_tree)) > 0, ps_microbiome_with_tree)
-ps_mycobiome_with_tree <- prune_samples(rowSums(otu_table(ps_mycobiome_with_tree)) > 0, ps_mycobiome_with_tree)
-
-# Convert to relative abundance
-ps_microbiome_with_tree <- transform_sample_counts(ps_microbiome_with_tree, function(x) {x / sum(x)})
-ps_mycobiome_with_tree <- transform_sample_counts(ps_mycobiome_with_tree, function(x) {x / sum(x)})
-
-# Clean metadata
-metadata_microbiome <- data.frame(sample_data(ps_microbiome_with_tree))
-metadata_microbiome <- metadata_microbiome[, c('host.age', 
-                                               'host.body.product', 
-                                               'host.sex', 
-                                               'host.subject.id')]
-metadata_microbiome <- clean_metadata(metadata_microbiome)
-sample_data(ps_microbiome_with_tree) <- metadata_microbiome
-sample_names(ps_microbiome_with_tree) <- metadata_microbiome[['sample_id']]
-
-metadata_mycobiome <- data.frame(sample_data(ps_mycobiome_with_tree))
-metadata_mycobiome <- metadata_mycobiome[, c('host.age', 
-                                             'host.body.product', 
-                                             'host.sex', 
-                                             'host.subject.id')]
-metadata_mycobiome <- clean_metadata(metadata_mycobiome)
-sample_data(ps_mycobiome_with_tree) <- metadata_mycobiome
-sample_names(ps_mycobiome_with_tree) <- metadata_mycobiome[['sample_id']]
-```
-
-```{r}
-# Subset to common samples
-sample_ids_microbiome <- metadata_microbiome[['sample_id']]
-sample_ids_mycobiome <- metadata_mycobiome[['sample_id']]
-sample_ids <- intersect(sample_ids_microbiome, sample_ids_mycobiome)
-
-ps_microbiome_with_tree <- prune_samples(sample_ids, ps_microbiome_with_tree)
-ps_mycobiome_with_tree <- prune_samples(sample_ids, ps_mycobiome_with_tree)
-
-# Ensure same sample order
-otu_table(ps_microbiome_with_tree) <- otu_table(ps_microbiome_with_tree)[sample_ids, ]
-otu_table(ps_mycobiome_with_tree) <- otu_table(ps_mycobiome_with_tree)[sample_ids, ]
-
-ps_microbiome_with_tree
-ps_mycobiome_with_tree
 ```
 
 ```{r, eval=FALSE}
@@ -787,6 +234,8 @@ stretching them."
 Procrustes analysis tests whether two ordinations have similar
 structures by rotating, translating, and scaling one to match the other.
 
+![Procrustes](https://minio.scielo.br/documentstore/1678-4499/w4DBp6nzxwvPFDR7JYWGWDr/fe4b2ee3c20d0671acaeb9176a3a4705df41e0d7.jpg)
+
 ```{r}
 dist <- unifrac_microbiome[, , unifrac_types[['Unweighted']]]
 # compute pcoa
@@ -844,8 +293,9 @@ height = 8
 options(repr.plot.width=width, repr.plot.height=height)
 
 pcoa_plot <- ggplot(data = pcoa_coordinates, aes(x=PCoA1, y=PCoA2)) +
-    geom_point(aes(fill=sample_source), 
-               size = 3, alpha=0.8, pch=21) +
+    geom_point(aes(color=factor(sample_source), shape=factor(sample_type)), 
+               size = 3, alpha=1) +
+    scale_shape_manual(values = c(16, 10)) +
     stat_ellipse(geom = "polygon",
                  aes(color = sample_source, 
                      fill = after_scale(alpha(colour, 0.1))), 
@@ -856,7 +306,6 @@ pcoa_plot <- ggplot(data = pcoa_coordinates, aes(x=PCoA1, y=PCoA2)) +
 
 pcoa_plot
 ```
-
 
 ```{r}
 # Perform Procrustes transformation
@@ -910,8 +359,9 @@ height = 8
 options(repr.plot.width=width, repr.plot.height=height)
 
 pcoa_plot <- ggplot(data = pcoa_coordinates_procrustes, aes(x=PCoA1, y=PCoA2)) +
-    geom_point(aes(fill=sample_source), 
-               size = 3, alpha=0.8, pch=21) +
+    geom_point(aes(color=factor(sample_source), shape=factor(sample_type)), 
+               size = 3, alpha=1) +
+    scale_shape_manual(values = c(16, 10)) +
     stat_ellipse(geom = "polygon",
                  aes(color = sample_source, 
                      fill = after_scale(alpha(colour, 0.1))), 
@@ -941,103 +391,6 @@ procrustes_permutation_d <- data.frame(distances = procrustes_permutation$t)
 procrustes_permutation_d0 <- procrustes_permutation$t0
 
 # Plot permutation test results
-procrustes_dist_plot <- ggplot(data = procrustes_permutation_d, aes(x = distances)) +
-    geom_histogram(bins = 125, fill = "dark grey") +
-    geom_vline(xintercept = procrustes_permutation_d0, lty = 2, color = "red") +
-    labs(x = "Procrustes distribution", y = "Count") +
-    theme(axis.text.x = element_text(hjust = 0.95, vjust=0.95),
-          axis.text=element_text(size=15),
-          axis.title=element_text(size=15),
-          plot.title=element_text(size=18, face="bold")) + 
-    theme(legend.position = "none") +
-    ggtitle(paste0('Procrustes permutation test, p-value = ', 
-                   sprintf('%.4f', procrustes_permutation$signif)))
-
-procrustes_dist_plot
-```
-
-# Procrustes Analysis for PCoA Bray-Curtis
-
-```{r}
-# Combine coordinates
-pcoa_coordinates <- rbind(pcoa_coordinates_microbiome,
-                          pcoa_coordinates_mycobiome)
-```
-
-```{r}
-# Plot before Procrustes
-width = 10
-height = 8
-options(repr.plot.width=width, repr.plot.height=height)
-
-pcoa_plot <- ggplot(data = pcoa_coordinates, aes(x=PCoA1, y=PCoA2)) +
-    geom_point(aes(fill=sample_type), 
-               size = 3, alpha=0.9, pch=21) +
-    stat_ellipse(geom = "polygon",
-                 aes(color = sample_type, 
-                     fill = after_scale(alpha(colour, 0.1))), 
-                 lwd=1.1, level=0.9, show.legend = FALSE) +
-    labs(title = "PCoA: UniFrac distance", 
-         subtitle = "Microbiome & Mycobiome") +
-    custom_theme
-
-pcoa_plot
-```
-
-```{r}
-n <- min(ncol(pcoa_res_microbiome$vectors), ncol(pcoa_res_mycobiome$vectors))
-# n <- 2
-
-procrustes_res <- procrustes(data.frame(pcoa_res_microbiome$vectors[, 1:n]), 
-                             data.frame(pcoa_res_mycobiome$vectors[, 1:n]), 
-                            scale=FALSE)
-pcoa_rotated_mycobiome <- data.frame(procrustes_res$Yrot)
-colnames(pcoa_rotated_mycobiome) <- paste0('PCoA', c(1:n))
-pcoa_original_microbiome <- data.frame(procrustes_res$X)
-colnames(pcoa_original_microbiome) <- paste0('PCoA', c(1:n))
-pcoa_original_microbiome$sample_type <- 'Microbiome'
-pcoa_rotated_mycobiome$sample_type <- 'Mycobiome'
-pcoa_coordinates_procrustes <- rbind(pcoa_original_microbiome, pcoa_rotated_mycobiome)
-```
-
-```{r}
-width = 10
-height = 8
-options(repr.plot.width=width, repr.plot.height=height)
-
-pcoa_plot <- ggplot(data = pcoa_coordinates_procrustes, aes(x=PCoA1, y=PCoA2)) +
-# plot sample values projected on PCoA
-      geom_point(aes(fill=sample_type), 
-                 size = 3, alpha=0.9, pch=21) +
-# plot group circles
-      stat_ellipse(geom = "polygon",
-                   aes(color = sample_type, 
-                       fill = after_scale(alpha(colour, 0.1))), lwd=1.1, level=0.9, show.legend = FALSE) +
-# add titles
-      labs(
-           title = "PCoA: Bray-Curtis distance after Procrustes", 
-           subtitle = "Microbiome & Mycobiome") +
-# custom plot design
-     custom_theme
-pcoa_plot
-```
-
-```{r}
-# Perform Procrustes permutation test
-width = 10
-height = 7
-options(repr.plot.width=width, repr.plot.height=height)
-
-n <- min(ncol(pcoa_res_microbiome$vectors), ncol(pcoa_res_mycobiome$vectors))
-
-set.seed(123)
-procrustes_permutation <- protest(data.frame(pcoa_res_microbiome$vectors[, 1:n]), 
-                                  data.frame(pcoa_res_mycobiome$vectors[, 1:n]), 
-                                  scale=FALSE, permutations = 999)
-
-procrustes_permutation_d <- data.frame(distances = procrustes_permutation$t)
-procrustes_permutation_d0 <- procrustes_permutation$t0
-
 procrustes_dist_plot <- ggplot(data = procrustes_permutation_d, aes(x = distances)) +
     geom_histogram(bins = 125, fill = "dark grey") +
     geom_vline(xintercept = procrustes_permutation_d0, lty = 2, color = "red") +
@@ -1165,6 +518,16 @@ test_significance_LOOCV <- function(X, Y, K, penaltyX, penaltyY){
 ```
 
 ```{r}
+# Load phyloseq objects containing microbiome (16S) and mycobiome (ITS) data
+ps_microbiome <- readRDS('../../data/data_analysis/ps_microbiome.genus_agglomerated.rds')
+ps_mycobiome <- readRDS('../../data/data_analysis/ps_mycobiome.genus_agglomerated.rds')
+
+# Display summary of loaded objects
+ps_microbiome
+ps_mycobiome
+```
+
+```{r}
 # Filter out rarely present taxa (present in <1% of samples)
 otu_microbiome <- data.frame(otu_table(ps_microbiome))
 otu_mycobiome <- data.frame(otu_table(ps_mycobiome))
@@ -1190,7 +553,7 @@ bestpenaltyY <- bestPenalty[2]
 
 ```{r}
 # Run CCA with optimal parameters
-cca.k = 10  # Number of canonical components to extract
+cca.k = 5  # Number of canonical components to extract
 cca_results <- run_sparseCCA(as.matrix(otu_microbiome), 
                              as.matrix(otu_mycobiome), 
                              cca.k, 
@@ -1212,7 +575,6 @@ saveRDS(CCA_padj, '../../data/data_analysis/CCA_padj.rds')
 ```{r}
 CCA_padj <- readRDS('../../data/data_analysis/CCA_padj.rds')
 ```
-
 
 ```{r}
 # Prepare data for visualization

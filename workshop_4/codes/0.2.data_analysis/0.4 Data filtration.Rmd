@@ -1,0 +1,373 @@
+---
+title: An R Markdown document converted from "0.4 Data filtration.ipynb"
+output: html_document
+---
+
+# Data Analysis Workshop - Data filtration
+
+**Data source:**
+<https://www.frontiersin.org/journals/microbiology/articles/10.3389/fmicb.2022.1050574/full>
+
+
+## Library Installation
+
+```{r, eval=FALSE}
+# Please run the following code to install all necessary libraries, 
+# unless you have already installed them using conda recipe: conda_recipes/r_libraries.yaml.
+
+# R Library Installation Script
+# Install required packages for microbiome analysis
+
+# Install BiocManager if not already installed (needed for Bioconductor packages)
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+# Install Bioconductor packages
+BiocManager::install("phyloseq")
+BiocManager::install("GUniFrac")
+
+# Install CRAN packages
+install.packages("vegan")
+install.packages("ape")
+install.packages("ggplot2")
+install.packages("ggpubr")
+install.packages("PMA")
+install.packages("reshape2")
+install.packages("tidyr")
+install.packages("phytools")
+install.packages("compositions")
+
+# Verify installations by loading libraries
+cat("\n=== Verifying installations ===\n")
+libraries <- c("phyloseq", "vegan", "ape", "ggplot2", "ggpubr", 
+               "PMA", "parallel", "reshape2", "tidyr", "GUniFrac", "phytools", "compositions")
+
+for (lib in libraries) {
+  if (require(lib, character.only = TRUE, quietly = TRUE)) {
+    cat(sprintf("✓ %s loaded successfully\n", lib))
+  } else {
+    cat(sprintf("✗ %s failed to load\n", lib))
+  }
+}
+
+cat("\nInstallation complete!\n")
+```
+
+## Load Libraries
+
+```{r}
+# Load necessary libraries for microbiome analysis
+library(phyloseq)    # For microbiome data handling
+library(vegan)       # For ecological diversity analysis
+library(ape)         # For phylogenetic tree manipulation
+library(ggplot2)     # For visualization
+library(ggpubr)      # For publication-ready plots
+library(PMA)         # For sparse CCA
+library(parallel)    # For parallel computing
+library(reshape2)    # For data reshaping
+library(tidyr)       # For data tidying
+library(GUniFrac)    # For UniFrac distance calculations
+library(phytools)    # For phylogenetic tree tools
+library(compositions) # For CLR transformation
+```
+
+```{r}
+# Function to clean and standardize metadata
+# This creates consistent sample IDs across microbiome and mycobiome datasets
+clean_metadata <- function(metadata_preselected){
+    metadata_modified <- metadata_preselected
+    colnames(metadata_modified) <- c('age', 
+                                     'sample_source',
+                                     'sex',
+                                     'subject_id')
+    # Format age labels
+    metadata_modified['age'] <- paste0('t', metadata_preselected[['host.age']], 'month')
+    metadata_modified[metadata_preselected[['host.age']] == 6, 'age'] <- paste0(
+        metadata_modified[metadata_preselected[['host.age']] == 6, 'age'], 's')
+    
+    # Simplify sample source names
+    metadata_modified['sample_source'] <- gsub('human ', '', metadata_preselected[['host.body.product']])
+    
+    # Format subject IDs
+    metadata_modified['subject_id'] <- paste0('fam#', metadata_modified[['subject_id']])
+    
+    # Create unique sample IDs
+    metadata_modified['sample_id'] <- paste(metadata_modified[['subject_id']], 
+                                        metadata_modified[['age']],
+                                        metadata_modified[['sample_source']], sep='_')
+    return(metadata_modified)
+}
+```
+
+# Preprocessing 1
+
+1. Select matching samples between microbiome and mycobiome datasets. <br>
+2. Rename taxa with genera names.  <br>
+3. Calculate relative abundances.  <br>
+
+```{r}
+# Define path to preprocessed phyloseq objects
+data_path <- '../../data/PRJNA880162/processed/phyloseq'
+
+# Create output directory for analysis results
+dir.create("../../data/data_analysis", showWarnings = FALSE)
+```
+
+```{r}
+# Load phyloseq objects containing microbiome (16S) and mycobiome (ITS) data
+ps_microbiome <- readRDS('../../data/data_analysis/ps_microbiome.with_tree.rds')
+ps_mycobiome  <- readRDS('../../data/data_analysis/ps_mycobiome.with_tree.rds')
+
+# Display summary of loaded objects
+ps_microbiome
+ps_mycobiome
+```
+
+```{r}
+# Preview OTU table structure
+otu_table_preview <- data.frame(head(otu_table(ps_microbiome)))
+
+# Preview taxonomy table structure
+tax_table_preview <- data.frame(head(tax_table(ps_microbiome)))
+```
+
+```{r}
+# Check for and remove samples with zero total abundance
+nrow(otu_table(ps_microbiome)[rowSums(otu_table(ps_microbiome)) == 0, ])
+nrow(otu_table(ps_mycobiome)[rowSums(otu_table(ps_mycobiome)) == 0, ])
+
+# Prune samples with zero abundance
+ps_microbiome <- prune_samples(rowSums(otu_table(ps_microbiome)) > 0, ps_microbiome)
+ps_mycobiome <- prune_samples(rowSums(otu_table(ps_mycobiome)) > 0, ps_mycobiome)
+
+ps_microbiome
+ps_mycobiome
+```
+
+## Convert to Relative Abundance
+
+```{r}
+# Transform counts to relative abundances (proportions)
+# This normalizes for different sequencing depths across samples
+ps_microbiome <- transform_sample_counts(ps_microbiome, function(x) {x / sum(x)})
+ps_mycobiome <- transform_sample_counts(ps_mycobiome, function(x) {x / sum(x)})
+```
+
+```{r}
+# Verify the transformation (values should sum to 1 for each sample)
+otu_table_preview <- data.frame(head(otu_table(ps_microbiome)))
+```
+
+## Subset Same Samples
+
+```{r}
+# Verify the transformation (values should sum to 1 for each sample)
+metadata_table_preview <- data.frame(head(sample_data(ps_microbiome)))[, c('host.age', 
+                                                                           'host.body.product', 
+                                                                           'host.sex', 
+                                                                           'host.subject.id')]
+```
+
+```{r}
+# Clean microbiome metadata
+metadata_microbiome <- data.frame(sample_data(ps_microbiome))
+metadata_microbiome <- metadata_microbiome[, c('host.age', 
+                                               'host.body.product', 
+                                               'host.sex', 
+                                               'host.subject.id')]
+metadata_microbiome <- clean_metadata(metadata_microbiome)
+sample_data(ps_microbiome) <- metadata_microbiome
+sample_names(ps_microbiome) <- metadata_microbiome[['sample_id']]
+```
+
+```{r}
+# Verify the transformation (values should sum to 1 for each sample)
+metadata_table_preview <- data.frame(head(sample_data(ps_microbiome)))
+```
+
+```{r}
+# Clean mycobiome metadata
+metadata_mycobiome <- data.frame(sample_data(ps_mycobiome))
+metadata_mycobiome <- metadata_mycobiome[, c('host.age', 
+                                             'host.body.product', 
+                                             'host.sex', 
+                                             'host.subject.id')]
+metadata_mycobiome <- clean_metadata(metadata_mycobiome)
+sample_data(ps_mycobiome) <- metadata_mycobiome
+sample_names(ps_mycobiome) <- metadata_mycobiome[['sample_id']]
+```
+
+```{r}
+# Find samples present in both datasets
+sample_ids_microbiome <- metadata_microbiome[['sample_id']]
+sample_ids_mycobiome <- metadata_mycobiome[['sample_id']]
+sample_ids <- intersect(sample_ids_microbiome, sample_ids_mycobiome)
+```
+
+```{r}
+# Subset to common samples and ensure same order
+ps_microbiome <- prune_samples(sample_ids, ps_microbiome)
+ps_mycobiome <- prune_samples(sample_ids, ps_mycobiome)
+
+# Ensure samples are in the same order in both datasets
+otu_table(ps_microbiome) <- otu_table(ps_microbiome)[sample_ids, ]
+otu_table(ps_mycobiome) <- otu_table(ps_mycobiome)[sample_ids, ]
+
+ps_microbiome
+ps_mycobiome
+```
+
+```{r}
+# Save processed phyloseq objects for later use
+saveRDS(ps_microbiome, '../../data/data_analysis/ps_microbiome.filtered.rds')
+saveRDS(ps_mycobiome, '../../data/data_analysis/ps_mycobiome.filtered.rds')
+```
+
+# Preprocessing 2. Agglomerated by genus
+
+1. Select matching samples between microbiome and mycobiome datasets. <br>
+2. Agglomerate by Genus.  <br>
+3. Rename taxa with genera names.  <br>
+4. Calculate relative abundances.  <br>
+
+```{r}
+# Define path to preprocessed phyloseq objects
+data_path <- '../../data/PRJNA880162/processed/phyloseq'
+
+# Create output directory for analysis results
+dir.create("../../data/data_analysis", showWarnings = FALSE)
+```
+
+```{r}
+# Load phyloseq objects containing microbiome (16S) and mycobiome (ITS) data
+ps_microbiome <- readRDS('../../data/data_analysis/ps_microbiome.with_tree.rds')
+ps_mycobiome  <- readRDS('../../data/data_analysis/ps_mycobiome.with_tree.rds')
+
+# Display summary of loaded objects
+ps_microbiome
+ps_mycobiome
+```
+
+```{r}
+# Preview OTU table structure
+otu_table_preview <- data.frame(head(otu_table(ps_microbiome)))
+
+# Preview taxonomy table structure
+tax_table_preview <- data.frame(head(tax_table(ps_microbiome)))
+```
+
+## Agglomerate by Genus
+
+```{r}
+# Agglomerate taxa at the genus level
+# This combines all OTUs belonging to the same genus
+ps_microbiome <- tax_glom(ps_microbiome, 'Genus')
+ps_mycobiome <- tax_glom(ps_mycobiome, 'Genus')
+
+ps_microbiome
+ps_mycobiome
+```
+
+```{r}
+# Rename taxa using genus names for easier interpretation
+taxa_names(ps_microbiome) <- tax_table(ps_microbiome)[, 'Genus']
+taxa_names(ps_mycobiome) <- tax_table(ps_mycobiome)[, 'Genus']
+```
+
+```{r}
+# Verify the renaming
+otu_table_preview <- data.frame(head(otu_table(ps_microbiome)))
+```
+
+```{r}
+# Check for and remove samples with zero total abundance
+nrow(otu_table(ps_microbiome)[rowSums(otu_table(ps_microbiome)) == 0, ])
+nrow(otu_table(ps_mycobiome)[rowSums(otu_table(ps_mycobiome)) == 0, ])
+
+# Prune samples with zero abundance
+ps_microbiome <- prune_samples(rowSums(otu_table(ps_microbiome)) > 0, ps_microbiome)
+ps_mycobiome <- prune_samples(rowSums(otu_table(ps_mycobiome)) > 0, ps_mycobiome)
+
+ps_microbiome
+ps_mycobiome
+```
+
+## Convert to Relative Abundance
+
+```{r}
+# Transform counts to relative abundances (proportions)
+# This normalizes for different sequencing depths across samples
+ps_microbiome <- transform_sample_counts(ps_microbiome, function(x) {x / sum(x)})
+ps_mycobiome <- transform_sample_counts(ps_mycobiome, function(x) {x / sum(x)})
+```
+
+```{r}
+# Verify the transformation (values should sum to 1 for each sample)
+otu_table_preview <- data.frame(head(otu_table(ps_microbiome)))
+```
+
+## Subset Same Samples
+
+```{r}
+# Verify the transformation (values should sum to 1 for each sample)
+metadata_table_preview <- data.frame(head(sample_data(ps_microbiome)))[, c('host.age', 
+                                                                           'host.body.product', 
+                                                                           'host.sex', 
+                                                                           'host.subject.id')]
+```
+
+```{r}
+# Clean microbiome metadata
+metadata_microbiome <- data.frame(sample_data(ps_microbiome))
+metadata_microbiome <- metadata_microbiome[, c('host.age', 
+                                               'host.body.product', 
+                                               'host.sex', 
+                                               'host.subject.id')]
+metadata_microbiome <- clean_metadata(metadata_microbiome)
+sample_data(ps_microbiome) <- metadata_microbiome
+sample_names(ps_microbiome) <- metadata_microbiome[['sample_id']]
+```
+
+```{r}
+# Verify the transformation (values should sum to 1 for each sample)
+metadata_table_preview <- data.frame(head(sample_data(ps_microbiome)))
+```
+
+```{r}
+# Clean mycobiome metadata
+metadata_mycobiome <- data.frame(sample_data(ps_mycobiome))
+metadata_mycobiome <- metadata_mycobiome[, c('host.age', 
+                                             'host.body.product', 
+                                             'host.sex', 
+                                             'host.subject.id')]
+metadata_mycobiome <- clean_metadata(metadata_mycobiome)
+sample_data(ps_mycobiome) <- metadata_mycobiome
+sample_names(ps_mycobiome) <- metadata_mycobiome[['sample_id']]
+```
+
+```{r}
+# Find samples present in both datasets
+sample_ids_microbiome <- metadata_microbiome[['sample_id']]
+sample_ids_mycobiome <- metadata_mycobiome[['sample_id']]
+sample_ids <- intersect(sample_ids_microbiome, sample_ids_mycobiome)
+```
+
+```{r}
+# Subset to common samples and ensure same order
+ps_microbiome <- prune_samples(sample_ids, ps_microbiome)
+ps_mycobiome <- prune_samples(sample_ids, ps_mycobiome)
+
+# Ensure samples are in the same order in both datasets
+otu_table(ps_microbiome) <- otu_table(ps_microbiome)[sample_ids, ]
+otu_table(ps_mycobiome) <- otu_table(ps_mycobiome)[sample_ids, ]
+
+ps_microbiome
+ps_mycobiome
+```
+
+```{r}
+# Save processed phyloseq objects for later use
+saveRDS(ps_microbiome, '../../data/data_analysis/ps_microbiome.genus_agglomerated.rds')
+saveRDS(ps_mycobiome, '../../data/data_analysis/ps_mycobiome.genus_agglomerated.rds')
+```
+
