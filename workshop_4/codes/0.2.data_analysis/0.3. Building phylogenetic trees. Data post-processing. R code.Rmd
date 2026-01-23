@@ -1,0 +1,49 @@
+---
+title: An R Markdown document converted from "0.3. Building phylogenetic trees. Data
+  post-processing. R code.ipynb"
+output: html_document
+---
+
+```{r}
+library(phyloseq)
+library(ape)
+```
+
+```{r}
+data_path <- '../../data/PRJNA880162/processed/phyloseq'
+```
+
+### Data postprocessing
+
+```{r}
+ps_microbiome <- readRDS(file.path(data_path, 'input_data_16S/phyloseq.rds'))
+otu_microbiome <- read.csv('../../data/data_analysis/ghost_tree/ps_microbiome.otu.renamed.csv', sep='\t', row.names=1)
+taxa_microbiome <- read.csv('../../data/data_analysis/ghost_tree/ps_microbiome.taxonomy.renamed.csv', sep='\t', row.names=1)
+tree_microbiome <- read.tree('../../data/data_analysis/ghost_tree/ps_microbiome.tree.nwk')
+```
+
+```{r}
+ps_mycobiome <- readRDS(file.path(data_path, 'input_data_ITS/phyloseq.rds'))
+otu_mycobiome <- read.csv('../../data/data_analysis/ghost_tree/ps_mycobiome.otu.renamed.csv', sep='\t', row.names=1)
+taxa_mycobiome <- read.csv('../../data/data_analysis/ghost_tree/ps_mycobiome.taxonomy.renamed.csv', sep='\t', row.names=1)
+tree_mycobiome <- read.tree("../../data/data_analysis/ghost_tree/ghost_tree/ghost_tree.nwk")
+```
+
+```{r}
+ps_microbiome_renamed <- phyloseq(otu_table(otu_microbiome, taxa_are_rows=FALSE), 
+                         tax_table(as.matrix(taxa_microbiome)), 
+                         sample_data(ps_microbiome),
+                         phy_tree(tree_microbiome))
+saveRDS(ps_microbiome_renamed, '../../data/data_analysis/ps_microbiome.with_tree.rds')
+ps_microbiome_renamed
+```
+
+```{r}
+ps_mycobiome_renamed <- phyloseq(otu_table(otu_mycobiome, taxa_are_rows=FALSE), 
+                         tax_table(as.matrix(taxa_mycobiome)), 
+                         sample_data(ps_mycobiome),
+                         phy_tree(tree_mycobiome))
+saveRDS(ps_mycobiome_renamed, '../../data/data_analysis/ps_mycobiome.with_tree.rds')
+ps_mycobiome_renamed
+```
+

@@ -1,0 +1,164 @@
+---
+title: An R Markdown document converted from "0.2. Building phylogenetic trees. Ghost-tree
+  usage. Terminal.ipynb"
+output: html_document
+---
+
+```{bash}
+# https://www.arb-silva.de/archive/release_132/Exports
+```
+
+```{bash}
+conda activate ghost_tree
+```
+
+```{bash}
+mkdir ../../data/data_analysis/ghost_tree
+```
+
+```{bash}
+# Please verify that you have MUSCLE v3.* installed, 
+# since newer versions of MUSCLE are not compatible with Ghost-tree
+muscle --version
+```
+
+### Create a phylogenetic tree for 16S
+
+```{bash}
+# inputs
+OTU_FILE='../../data/data_analysis/ps_microbiome.otu.csv'
+TAXONOMY_FILE='../../data/data_analysis/ps_microbiome.taxonomy.csv'
+# outputs
+OTU_FILE_RENAMED='../../data/data_analysis/ghost_tree/ps_microbiome.otu.renamed.csv'
+TAXONOMY_FILE_RENAMED='../../data/data_analysis/ghost_tree/ps_microbiome.taxonomy.renamed.csv'
+TAXONOMY_FILE_GHOST='../../data/data_analysis/ghost_tree/ps_microbiome.taxonomy.ghost_tree.csv'
+TAXONOMY_FASTA_FILE='../../data/data_analysis/ghost_tree/ps_microbiome.taxonomy.fasta'
+TAXONOMY_ALIGNED_FASTA_FILE='../../data/data_analysis/ghost_tree/ps_microbiome.taxonomy_aligned.fasta'
+TREE='../../data/data_analysis/ghost_tree/ps_microbiome.tree.nwk'
+```
+
+```{bash}
+python scripts/convert_taxonomy_to_fasta.py \
+    $OTU_FILE \
+    $TAXONOMY_FILE \
+    $OTU_FILE_RENAMED \
+    $TAXONOMY_FILE_RENAMED \
+    $TAXONOMY_FILE_GHOST \
+    $TAXONOMY_FASTA_FILE 
+```
+
+```{bash}
+muscle -in $TAXONOMY_FASTA_FILE \
+       -out $TAXONOMY_ALIGNED_FASTA_FILE \
+       -maxiters 2 -diags1
+```
+
+```{bash}
+fasttree -nt -quiet $TAXONOMY_ALIGNED_FASTA_FILE > $TREE
+```
+
+### Create a phylogenetic tree for ITS
+
+```{bash}
+wget -P ../../data/data_analysis/ghost_tree \
+    https://www.arb-silva.de/fileadmin/silva_databases/release_132/Exports/SILVA_132_SSURef_Nr99_tax_silva_full_align_trunc.fasta.gz
+wget -P ../../data/data_analysis/ghost_tree \
+    https://www.arb-silva.de/fileadmin/silva_databases/release_132/Exports/taxonomy/tax_slv_ssu_132.acc_taxid
+wget -P ../../data/data_analysis/ghost_tree \
+    https://www.arb-silva.de/fileadmin/silva_databases/release_132/Exports/taxonomy/tax_slv_ssu_132.txt
+```
+
+### Prepare SILVA backbone data
+
+```{bash}
+# inputs
+SILVA_DB_ALIGN="../../data/data_analysis/ghost_tree/SILVA_132_SSURef_Nr99_tax_silva_full_align_trunc.fasta.gz"
+SILVA_TAX_MAP="../../data/data_analysis/ghost_tree/tax_slv_ssu_132.txt"
+SILVA_TAX_ACC_TAXID="../../data/data_analysis/ghost_tree/tax_slv_ssu_132.acc_taxid"
+# outputs
+SILVA_DB_ALIGN_FASTA="../../data/data_analysis/ghost_tree/SILVA_132_SSURef_Nr99_tax_silva_full_align_trunc.fasta"
+SILVA_FUNGI_ONLY_FILE="../../data/data_analysis/ghost_tree/silva_fungi_only.txt"
+SILVA_FUNGI_ONLY_FILTERED_FILE="../../data/data_analysis/ghost_tree/silva_fungi_only_filtered.txt"
+```
+
+```{bash}
+gunzip -k $SILVA_DB_ALIGN 
+```
+
+```{bash}
+ghost-tree silva extract-fungi \
+    $SILVA_DB_ALIGN_FASTA \
+    $SILVA_TAX_ACC_TAXID \
+    $SILVA_TAX_MAP \
+    $SILVA_FUNGI_ONLY_FILE
+ 
+```
+
+```{bash}
+ghost-tree filter-alignment-positions \
+    $SILVA_FUNGI_ONLY_FILE \
+    0.9 0.8 \
+    $SILVA_FUNGI_ONLY_FILTERED_FILE 
+```
+
+### Prepare UNITE database and taxonomy annotations
+
+```{bash}
+# inputs
+# neccesary to provide a path to the same database, used for the ITS reads annotation 
+DATABASE_PATH='../../data/database/UNITE'
+UNITE_DB=$DATABASE_PATH'/sh_general_release_dynamic_s_19.02.2025_dev.fasta' 
+OTU_FILE='../../data/data_analysis/ps_mycobiome.otu.csv'
+TAXONOMY_FILE='../../data/data_analysis/ps_mycobiome.taxonomy.csv'
+# outputs
+UNITE_TAX_FILE='../../data/data_analysis/ghost_tree/sh_general_release_dynamic_s_19.02.2025_dev.ghost_tree.fasta'
+OTU_FILE_RENAMED='../../data/data_analysis/ghost_tree/ps_mycobiome.otu.renamed.csv'
+TAXONOMY_FILE_RENAMED='../../data/data_analysis/ghost_tree/ps_mycobiome.taxonomy.renamed.csv'
+TAXONOMY_FILE_GHOST='../../data/data_analysis/ghost_tree/ps_mycobiome.taxonomy.ghost_tree.csv'
+TAXONOMY_FASTA_FILE='../../data/data_analysis/ghost_tree/ps_mycobiome.taxonomy.fasta'
+```
+
+```{bash}
+grep ">" $UNITE_DB \
+    | tr -d '>' \
+    | awk -F'\|k__' '{print $1 "|k__" $2}' \
+    | awk -F'\|k__' '{print "'"'"'" $1 "'"'"'" "\t" "k__" $2}' \
+    > $UNITE_TAX_FILE 
+```
+
+```{bash}
+python scripts/convert_taxonomy_to_fasta.py \
+    $OTU_FILE \
+    $TAXONOMY_FILE \
+    $OTU_FILE_RENAMED \
+    $TAXONOMY_FILE_RENAMED \
+    $TAXONOMY_FILE_GHOST \
+    $TAXONOMY_FASTA_FILE 
+```
+
+### Building a Tree
+
+```{bash}
+# outputs
+UNITE_DB_EXTENSIONS_FILE='../../data/data_analysis/ghost_tree/unite_db_tree_extensions.txt'
+GHOST_TREE_OUT="../../data/data_analysis/ghost_tree/ghost_tree"
+```
+
+```{bash}
+# Grouping the UNITE database tree extensions
+ghost-tree extensions group-extensions \
+    $TAXONOMY_FASTA_FILE \
+    0.5 \
+    $UNITE_DB_EXTENSIONS_FILE
+```
+
+```{bash}
+# Building combining Silva backbone with UNITE tree extensions into a final tree
+ghost-tree scaffold hybrid-tree-foundation-alignment \
+    $UNITE_DB_EXTENSIONS_FILE \
+    $TAXONOMY_FILE_GHOST  \
+    $TAXONOMY_FASTA_FILE \
+    $SILVA_FUNGI_ONLY_FILTERED_FILE \
+    $GHOST_TREE_OUT
+```
+
