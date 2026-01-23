@@ -2,6 +2,7 @@
 title: An R Markdown document converted from "0.2. Building phylogenetic trees. Ghost-tree
   usage. Terminal.ipynb"
 output: html_document
+desc: The content of this file is a courtesy of Hanh Tran with minor modifications. For the original pipeline, please refer to https://github.com/hanhntran/ghost-tree-code-review
 ---
 
 ```{bash}
