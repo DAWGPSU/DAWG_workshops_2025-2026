@@ -4,7 +4,7 @@
 ## Overview
 This workshop demonstrates integrated analysis techniques for microbiome and mycobiome data, focusing on multivariate statistical approaches and phylogenetic methods.
 
-**Main Analysis Script:** `workshop_4/codes/0.2.data_analysis/1_Main_analysis_PCoA_Procrustes_CCA.Rmd`
+**Main Analysis Script:** `workshop_4/codes/0.2.data_analysis/1_Main_analysis_PCoA_Procrustes_CCA.ipynb`
 
 ## Workshop Content
 - **Principal Coordinates Analysis (PCoA)** based on Bray-Curtis distance
@@ -75,7 +75,7 @@ cat("\nInstallation complete!\n")
 1. Clone this repository
 2. Install required libraries (see Installation section)
 3. Navigate to `workshop_4/codes/0.2.data_analysis/`
-4. Open `1_Main_analysis_PCoA_Procrustes_CCA.Rmd` in RStudio
+4. Open `1_Main_analysis_PCoA_Procrustes_CCA.ipynb` in RStudio
 5. Run the R Markdown document interactively or knit to generate a report
 
 ## Repository Structure
@@ -85,10 +85,10 @@ workshop_4/
 ├── codes/
 │   ├── 0.1.data_processing/         # Raw data processing pipeline            
 │   └── 0.2.data_analysis/
-│       ├── 0.1. Building phylogenetic trees. Data pre-processing. R code.Rmd
-│       ├── 0.2. Building phylogenetic trees. Ghost-tree usage. Terminal.Rmd
-│       ├── 0.3. Building phylogenetic trees. Data post-processing. R code.Rmd
-│       ├── 1. Main_analysis_PCoA_Procrustes_CCA.Rmd    # Main workshop script
+│       ├── 0.1. Building phylogenetic trees. Data pre-processing. R code.ipynb
+│       ├── 0.2. Building phylogenetic trees. Ghost-tree usage. Terminal.ipynb
+│       ├── 0.3. Building phylogenetic trees. Data post-processing. R code.ipynb
+│       ├── 1. Main_analysis_PCoA_Procrustes_CCA.ipynb    # Main workshop script
 │       ├── conda_recipes/
 │       │   ├── ghost-tree.yaml
 │       │   └── r_libraries.yaml
