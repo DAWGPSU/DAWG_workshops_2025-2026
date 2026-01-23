@@ -1,3 +1,12 @@
+# custom
+/.ipynb_checkpoints/
+workshop_4/data/data_analysis/ghost_tree/SILVA_*
+workshop_4/data/data_analysis/ghost_tree/sh_general_release_dynamic_s_19.02.2025_dev.ghost_tree.fasta
+workshop_4/data/data_analysis/ghost_tree/silva_*
+workshop_4/data/data_analysis/ghost_tree/tax_*
+workshop_4/data/data_analysis/ghost_tree/unite_*
+workshop_4/data/database/*
+
 # History files
 .Rhistory
 .Rapp.history
