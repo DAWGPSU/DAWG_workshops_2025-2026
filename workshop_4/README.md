@@ -4,7 +4,7 @@
 ## Overview
 This workshop demonstrates integrated analysis techniques for microbiome and mycobiome data, focusing on multivariate statistical approaches and phylogenetic methods.
 
-**Main Analysis Script:** `workshop_4/codes/0.2.data_analysis/1_Main_analysis_PCoA_Procrustes_CCA.ipynb`
+**Main Analysis Script:** `workshop_4/codes/0.2.data_analysis/1. Main_analysis_PCoA_Procrustes_CCA.ipynb`
 
 ## Workshop Content
 - **Principal Coordinates Analysis (PCoA)** based on Bray-Curtis distance
