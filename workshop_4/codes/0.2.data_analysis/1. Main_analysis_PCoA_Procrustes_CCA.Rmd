@@ -31,7 +31,6 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 
 # Install Bioconductor packages
 BiocManager::install("phyloseq")
-BiocManager::install("GUniFrac")
 
 # Install CRAN packages
 install.packages("vegan")
@@ -43,6 +42,7 @@ install.packages("reshape2")
 install.packages("tidyr")
 install.packages("phytools")
 install.packages("compositions")
+install.packages("GUniFrac")
 
 # Verify installations by loading libraries
 cat("\n=== Verifying installations ===\n")
