@@ -108,24 +108,15 @@ ghost-tree filter-alignment-positions \
 # inputs
 # neccesary to provide a path to the same database, used for the ITS reads annotation 
 DATABASE_PATH='../../data/database/UNITE'
-UNITE_DB=$DATABASE_PATH'/sh_general_release_dynamic_s_19.02.2025_dev.fasta' 
 OTU_FILE='../../data/data_analysis/ps_mycobiome.otu.csv'
 TAXONOMY_FILE='../../data/data_analysis/ps_mycobiome.taxonomy.csv'
 # outputs
-UNITE_TAX_FILE='../../data/data_analysis/ghost_tree/sh_general_release_dynamic_s_19.02.2025_dev.ghost_tree.fasta'
 OTU_FILE_RENAMED='../../data/data_analysis/ghost_tree/ps_mycobiome.otu.renamed.csv'
 TAXONOMY_FILE_RENAMED='../../data/data_analysis/ghost_tree/ps_mycobiome.taxonomy.renamed.csv'
 TAXONOMY_FILE_GHOST='../../data/data_analysis/ghost_tree/ps_mycobiome.taxonomy.ghost_tree.csv'
 TAXONOMY_FASTA_FILE='../../data/data_analysis/ghost_tree/ps_mycobiome.taxonomy.fasta'
 ```
 
-```{bash}
-grep ">" $UNITE_DB \
-    | tr -d '>' \
-    | awk -F'\|k__' '{print $1 "|k__" $2}' \
-    | awk -F'\|k__' '{print "'"'"'" $1 "'"'"'" "\t" "k__" $2}' \
-    > $UNITE_TAX_FILE 
-```
 
 ```{bash}
 python scripts/convert_taxonomy_to_fasta.py \
@@ -141,7 +132,7 @@ python scripts/convert_taxonomy_to_fasta.py \
 
 ```{bash}
 # outputs
-UNITE_DB_EXTENSIONS_FILE='../../data/data_analysis/ghost_tree/unite_db_tree_extensions.txt'
+TAXONOMY_EXTENSIONS_FILE='../../data/data_analysis/ghost_tree/unite_db_tree_extensions.txt'
 GHOST_TREE_OUT="../../data/data_analysis/ghost_tree/ghost_tree"
 ```
 
@@ -150,13 +141,13 @@ GHOST_TREE_OUT="../../data/data_analysis/ghost_tree/ghost_tree"
 ghost-tree extensions group-extensions \
     $TAXONOMY_FASTA_FILE \
     0.5 \
-    $UNITE_DB_EXTENSIONS_FILE
+    $TAXONOMY_EXTENSIONS_FILE
 ```
 
 ```{bash}
 # Building combining Silva backbone with UNITE tree extensions into a final tree
 ghost-tree scaffold hybrid-tree-foundation-alignment \
-    $UNITE_DB_EXTENSIONS_FILE \
+    $TAXONOMY_EXTENSIONS_FILE \
     $TAXONOMY_FILE_GHOST  \
     $TAXONOMY_FASTA_FILE \
     $SILVA_FUNGI_ONLY_FILTERED_FILE \
