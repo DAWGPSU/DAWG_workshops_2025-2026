@@ -54,11 +54,10 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 
 # Install Bioconductor packages
 BiocManager::install("phyloseq")
-BiocManager::install("GUniFrac")
 
 # Install CRAN packages
 install.packages(c("vegan", "ape", "ggplot2", "ggpubr", 
-                   "PMA", "reshape2", "tidyr", "phytools", "compositions"))
+                   "PMA", "reshape2", "tidyr", "phytools", "compositions", "GUniFrac"))
 
 # Note: 'parallel' is part of base R
 
