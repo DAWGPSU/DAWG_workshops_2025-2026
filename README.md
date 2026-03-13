@@ -21,3 +21,8 @@ The presentation for the workshop is available at [DAWG_Workshop_3.pdf](https://
 
 ### Workshop 4
 The codes for the workshop are available in the [workshop_4 directory](https://github.com/DAWGPSU/DAWG_workshops_2025-2026/tree/main/workshop_4/)
+
+### Workshop 5
+The code for the workshop is available at [DAWG-S26-2-rmd.html](https://dawgpsu.github.io/DAWG_workshops_2025-2026/workshop_5/DAWG-S26-2-rmd.html)
+
+The presentation for the workshop is available at [DAWG S26 Workshop 2.pdf](https://github.com/DAWGPSU/DAWG_workshops_2025-2026/blob/main/workshop_5/DAWG S26 Workshop 2.pdf)
